@@ -4,8 +4,33 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 
+let currentQR = "";
+
 // Servidor Web Simples para o Render não "dormir"
-app.get('/', (req, res) => res.send('Finance Bot Cloud está ON! 🚀'));
+app.get('/', (req, res) => {
+    if (currentQR) {
+        res.send(`
+            <div style="text-align:center; font-family:sans-serif; padding: 50px; background: #0a0e1a; color: white; min-height: 100vh;">
+                <h1 style="color: #6366f1;">🤖 Finance Bot Cloud</h1>
+                <p>Escaneie o QR Code abaixo para conectar:</p>
+                <div style="background: white; padding: 20px; display: inline-block; border-radius: 10px; margin: 20px;">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(currentQR)}" />
+                </div>
+                <p style="color: #888;">Abra o WhatsApp > Aparelhos Conectados > Conectar um aparelho</p>
+                <script>setTimeout(() => location.reload(), 20000);</script>
+            </div>
+        `);
+    } else {
+        res.send(`
+            <div style="text-align:center; font-family:sans-serif; padding: 50px; background: #0a0e1a; color: white; min-height: 100vh;">
+                <h1 style="color: #6366f1;">🚀 Finance Bot Cloud está ON!</h1>
+                <p>Status: Aguardando QR Code ou já conectado.</p>
+                <p style="color: #888;">Se você já escaneou, o bot está operando em segundo plano.</p>
+            </div>
+        `);
+    }
+});
+
 app.listen(port, () => console.log(`Servidor de monitoramento rodando na porta ${port}`));
 
 // Configuração Supabase (Copiada do seu App)
@@ -17,7 +42,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const CLOUD_TOKEN = 'RICARDO-FINANCE-CLOUD-2026';
 
 console.log('--- INICIALIZANDO FINANCE-BOT CLOUD ---');
-console.log('Passe o olho no console para ver o QR Code se necessário.');
 
 const client = new Client({
     authStrategy: new LocalAuth({
@@ -31,13 +55,12 @@ const client = new Client({
 
 // Evento para exibir QR Code
 client.on('qr', (qr) => {
-    console.log('\n[QR CODE] Escaneie para conectar o bot de nuvem:');
-    // Como não temos a biblioteca de terminal aqui instalada por padrão, 
-    // vou apenas avisar que o QR Code está sendo gerado ou exibir o link
-    console.log('QR Code recebido. Em um servidor real, usaríamos o qrcode-terminal.');
+    currentQR = qr;
+    console.log('\n[QR CODE] Recebido. Acesse a URL do Render para escanear.');
 });
 
 client.on('ready', () => {
+    currentQR = "";
     console.log('\n[STATUS] Bot de Nuvem CONECTADO e pronto!');
     console.log('Ouvindo mensagens do WhatsApp...');
 });
