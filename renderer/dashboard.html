@@ -77,9 +77,22 @@
         </div>
         
         <div class="top-bar-actions">
-          <button class="btn-icon" id="whatsappStatusBtn" title="Status WhatsApp" style="position: relative;">
-            <i class="fab fa-whatsapp" id="whatsappStatusIcon" style="color: #e74c3c; font-size: 1.4rem;"></i>
+          <div style="display: flex; gap: 1rem; align-items: center; margin-right: 1rem; padding-right: 1rem; border-right: 1px solid rgba(255,255,255,0.1);">
+            <div id="localZapStatus" title="Robô Local (PC)" style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+               <i class="fab fa-whatsapp" id="whatsappStatusIcon" style="color: #e74c3c; font-size: 1.1rem;"></i>
+               <span style="font-size: 0.65rem; font-weight: 700; color: var(--text-muted);">LOCAL</span>
+            </div>
+            <div id="cloudZapStatus" title="Robô Nuvem (24h)" style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+               <i class="fas fa-cloud" id="cloudBotStatusIcon" style="color: #e74c3c; font-size: 1.1rem;"></i>
+               <span style="font-size: 0.65rem; font-weight: 700; color: var(--text-muted);">NUVEM</span>
+            </div>
+          </div>
+
+          <button class="btn-icon" id="cloudSyncBtn" title="Sincronizar Nuvem (24h)" style="position: relative;">
+            <i class="fas fa-cloud-download-alt" style="color: #6366f1; font-size: 1.4rem;"></i>
+            <span id="cloudCountBadge" style="display:none; position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 5px; font-size: 0.6rem; font-weight: bold;">0</span>
           </button>
+          
           <button class="btn-icon" id="closeBtn" title="Fechar">
             <i class="fas fa-times"></i>
           </button>

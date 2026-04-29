@@ -98,6 +98,8 @@ contextBridge.exposeInMainWorld('api', {
   // Sincronização Nuvem (Supabase)
   getCloudMessages: (userId) => ipcRenderer.invoke('get-cloud-messages', userId),
   markCloudMessageImported: (id) => ipcRenderer.invoke('mark-cloud-message-imported', id),
-  activateCloudSync: (data) => ipcRenderer.invoke('activate-cloud-sync', data)
+  activateCloudSync: (data) => ipcRenderer.invoke('activate-cloud-sync', data),
+  setCloudBotUrl: (userId, url) => ipcRenderer.invoke('set-cloud-bot-url', { userId, url }),
+  getCloudBotStatus: (url) => ipcRenderer.invoke('get-cloud-bot-status', url)
 });
 

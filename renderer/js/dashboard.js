@@ -128,10 +128,19 @@ function setupEventListeners() {
     document.getElementById('addGastoBtn')?.addEventListener('click', () => showModalGasto());
     
     // Listener para o botão de WhatsApp no topo
-    document.getElementById('whatsappStatusBtn')?.addEventListener('click', () => {
+    document.getElementById('localZapStatus')?.addEventListener('click', () => {
         const setupNavItem = document.querySelector('.nav-item[data-view="setup"]');
         if (setupNavItem) setupNavItem.click();
         setTimeout(() => showWaModal(), 200);
+    });
+
+    document.getElementById('cloudZapStatus')?.addEventListener('click', () => {
+        const setupNavItem = document.querySelector('.nav-item[data-view="setup"]');
+        if (setupNavItem) setupNavItem.click();
+        setTimeout(() => {
+            const el = document.getElementById('cloudSyncCard');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 200);
     });
 
     document.getElementById('syncFixasBtn')?.addEventListener('click', async () => {
@@ -142,6 +151,13 @@ function setupEventListeners() {
         await window.api.gerarDespesasFixas(currentPessoa.id, currentAno, currentMes);
         await loadGastos();
         btn.innerHTML = orig;
+    });
+    document.getElementById('cloudSyncBtn')?.addEventListener('click', () => {
+        const btn = document.getElementById('cloudSyncBtn');
+        btn.querySelector('i').classList.add('fa-spin');
+        syncCloudData().finally(() => {
+            setTimeout(() => btn.querySelector('i').classList.remove('fa-spin'), 1000);
+        });
     });
     document.getElementById('scanCupomBtn')?.addEventListener('click', scanCupom);
     document.getElementById('btnExportarPDF')?.addEventListener('click', () => exportYearlyPDF());
@@ -3007,18 +3023,32 @@ async function loadSetup() {
             <div class="setup-card" id="cloudSyncCard">
                 <div class="setup-card-header">
                     <i class="fas fa-cloud-upload-alt" style="color:#6366f1;"></i>
-                    <h3>Sincronização em Nuvem</h3>
+                    <h3>Configuração da Nuvem (24h)</h3>
                 </div>
-                <p>Mantenha seus dados seguros e receba cupons mesmo com o computador desligado.</p>
-                <div id="cloudStatusContainer" style="margin-top:1rem; text-align:center;">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">O robô na nuvem recebe mensagens mesmo com o PC desligado.</p>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.75rem;">URL do Servidor (Render/Railway)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="cloudBotUrlInput" class="form-control" placeholder="Ex: https://meubot.onrender.com" value="${currentUserProfile?.cloud_bot_url || ''}" style="font-size: 0.8rem; height: 35px;">
+                        <button class="btn btn-primary" id="btnSaveCloudUrl" style="padding: 0 10px; height: 35px;"><i class="fas fa-save"></i></button>
+                    </div>
+                </div>
+
+                <div id="cloudStatusContainer" style="text-align:center;">
                     <div id="cloudStatusBadge" class="status-badge" style="margin-bottom: 1rem; display: inline-block;">
                         <i class="fas fa-circle-notch fa-spin"></i> Verificando...
                     </div>
                     <div id="cloudSyncActions">
-                        <button class="btn btn-primary" onclick="activateCloudSyncUI()" id="btnActivateCloud" style="display:none; width: 100%;">
-                            <i class="fas fa-bolt"></i> Ativar Agora
-                        </button>
-                        <p id="cloudTokenInfo" style="font-size: 0.75rem; color: #888; margin-top: 0.5rem; display: none; word-break: break-all;"></p>
+                        <div style="display: flex; gap: 8px; margin-bottom: 0.5rem;">
+                            <button class="btn btn-primary" onclick="activateCloudSyncUI()" id="btnActivateCloud" style="display:none; flex: 1;">
+                                <i class="fas fa-bolt"></i> Ativar
+                            </button>
+                            <button class="btn btn-success" onclick="showCloudWaModal()" id="btnConnectCloudWa" style="display:none; flex: 1; background: #25d366; border: none;">
+                                <i class="fab fa-whatsapp"></i> Conectar Zap Nuvem
+                            </button>
+                        </div>
+                        <p id="cloudTokenInfo" style="font-size: 0.7rem; color: #888; margin-top: 0.5rem; display: none; word-break: break-all;"></p>
                     </div>
                 </div>
             </div>
@@ -3035,6 +3065,16 @@ async function loadSetup() {
 
     // Carrega Status do Whatsapp
     checkWaStatus();
+
+    // Listener para salvar URL da nuvem
+    document.getElementById('btnSaveCloudUrl')?.addEventListener('click', async () => {
+        const url = document.getElementById('cloudBotUrlInput').value.trim();
+        const userId = sessionStorage.getItem('userId') || 1;
+        await window.api.setCloudBotUrl(userId, url);
+        currentUserProfile.cloud_bot_url = url;
+        Swal.fire({ title: 'URL Salva!', icon: 'success', timer: 1500, showConfirmButton: false });
+        checkCloudStatus();
+    });
 }
 
 async function checkWaStatus() {
@@ -3053,7 +3093,7 @@ async function checkWaStatus() {
         // Atualiza ícone global do topo (Sempre deve rodar)
         if (globalIcon) {
             globalIcon.style.color = wa.isReady ? '#25d366' : '#e74c3c';
-            globalIcon.title = wa.isReady ? 'WhatsApp Conectado' : 'WhatsApp Desconectado';
+            globalIcon.title = wa.isReady ? 'Robô Local Conectado' : 'Robô Local Desconectado';
         }
 
         // Se o statusBox não existir (não estamos no setup), encerramos aqui de forma segura
@@ -3067,33 +3107,29 @@ async function checkWaStatus() {
             }
 
             if (wa.isReady) {
-            statusBox.innerHTML = '<span style="color:#25d366;"><i class="fas fa-check-circle"></i> Conectado e Pronto</span>';
-            connectBtn.style.display = 'none';
-            disconnectBtn.style.display = 'inline-block';
-            
-            const groupCreated = await window.api.checkWaGroup();
-            if (groupCreated) {
-                if (document.getElementById('btnCreateGroup')) document.getElementById('btnCreateGroup').style.display = 'none';
-                if (document.getElementById('btnDeleteGroup')) document.getElementById('btnDeleteGroup').style.display = 'inline-block';
+                statusBox.innerHTML = '<span style="color:#25d366;"><i class="fas fa-check-circle"></i> Local Conectado e Pronto</span>';
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'inline-block';
+                
+                const groupCreated = await window.api.checkWaGroup();
+                if (groupCreated) {
+                    if (document.getElementById('btnCreateGroup')) document.getElementById('btnCreateGroup').style.display = 'none';
+                    if (document.getElementById('btnDeleteGroup')) document.getElementById('btnDeleteGroup').style.display = 'inline-block';
+                } else {
+                    if (document.getElementById('btnCreateGroup')) document.getElementById('btnCreateGroup').style.display = 'inline-block';
+                    if (document.getElementById('btnDeleteGroup')) document.getElementById('btnDeleteGroup').style.display = 'none';
+                }
+            } else if (wa.isAuthenticated) {
+                statusBox.innerHTML = '<span style="color:#f39c12;"><i class="fas fa-circle-notch fa-spin"></i> Local Autenticado...</span>';
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'none';
             } else {
-                if (document.getElementById('btnCreateGroup')) document.getElementById('btnCreateGroup').style.display = 'inline-block';
-                if (document.getElementById('btnDeleteGroup')) document.getElementById('btnDeleteGroup').style.display = 'none';
+                statusBox.innerHTML = '<span style="color:#e74c3c;"><i class="fas fa-times-circle"></i> Local Desconectado</span>';
+                connectBtn.style.display = 'inline-block';
+                disconnectBtn.style.display = 'none';
             }
-        } else if (wa.isAuthenticated) {
-            statusBox.innerHTML = '<span style="color:#f39c12;"><i class="fas fa-circle-notch fa-spin"></i> Autenticado... Inicializando Motor</span>';
-            connectBtn.style.display = 'none';
-            disconnectBtn.style.display = 'none';
-            if (document.getElementById('btnCreateGroup')) document.getElementById('btnCreateGroup').style.display = 'none';
-            if (document.getElementById('btnDeleteGroup')) document.getElementById('btnDeleteGroup').style.display = 'none';
-        } else {
-            statusBox.innerHTML = '<span style="color:#e74c3c;"><i class="fas fa-times-circle"></i> Não Conectado</span>';
-            connectBtn.style.display = 'inline-block';
-            disconnectBtn.style.display = 'none';
-            if (document.getElementById('btnCreateGroup')) document.getElementById('btnCreateGroup').style.display = 'none';
-            if (document.getElementById('btnDeleteGroup')) document.getElementById('btnDeleteGroup').style.display = 'none';
         }
-    }
-} catch(e) {
+    } catch(e) {
         console.error(e);
     }
 }
@@ -3156,6 +3192,34 @@ async function showWaModal() {
             }
         }, 1000);
     }
+}
+
+async function showCloudWaModal() {
+    const userId = sessionStorage.getItem('userId') || 1;
+    const admin = await window.api.getUserById(userId);
+    
+    if (!admin.cloud_bot_url) {
+        Swal.fire('Erro', 'Configure a URL do servidor primeiro!', 'error');
+        return;
+    }
+
+    showModal('Conectar WhatsApp (Nuvem 24h)', `
+        <div style="text-align:center; padding: 1rem;">
+            <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                Este é o robô que fica na internet. Ele precisa de uma conexão própria.<br>
+                <strong>Escaneie o QR Code abaixo com seu celular.</strong>
+            </p>
+            <div style="background: white; padding: 10px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                <iframe src="${admin.cloud_bot_url}" style="width: 350px; height: 450px; border: none; border-radius: 8px;"></iframe>
+            </div>
+            <p style="font-size: 0.8rem; color: #888; margin-top: 1rem;">
+                Se o QR Code não aparecer, verifique se o servidor no Render está rodando.
+            </p>
+            <div class="modal-actions" style="margin-top:1.5rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Fechar</button>
+            </div>
+        </div>
+    `);
 }
 
 async function disconnectWa() {
@@ -3590,30 +3654,53 @@ function showModalMeioPagamento() {
         }
     };
 }
-async function syncCloudData() {
+async function syncCloudData(showEmpty = false) {
     try {
         const userId = sessionStorage.getItem('userId') || 1;
         console.log('[CLOUD] Verificando novos dados na nuvem para o usuário:', userId);
         const res = await window.api.getCloudMessages(userId);
         
+        const badge = document.getElementById('cloudCountBadge');
+        if (badge) {
+            if (res.success && res.data && res.data.length > 0) {
+                badge.innerText = res.data.length;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
         if (!res.success || !res.data || res.data.length === 0) {
-            return; // Nada para sincronizar
+            if (showEmpty) {
+                Swal.fire({
+                    title: 'Tudo em dia!',
+                    text: 'Não há novos gastos pendentes na nuvem.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+            return; 
         }
 
         const mensagens = res.data;
         const pessoas = await window.api.getPessoas();
 
-        // 1. Cruzamento de dados: Associar cada mensagem a uma pessoa pelo telefone
+        // 1. Cruzamento de dados: Associar cada mensagem a uma pessoa
         let tableRows = mensagens.map(m => {
-            const mPhone = normalizePhone(m.wa_id);
-            // Procura pessoa que tenha o mesmo final do número (últimos 8 dígitos para ser seguro com DDI/DDD)
+            // No Cloud Bot salvamos o texto formatado como "Pessoa: Gasto de R$ valor - desc"
+            // Mas também podemos ter o remetente_fone
+            const mPhone = normalizePhone(m.remetente_fone || "");
+            
+            // Tenta achar a pessoa pelo telefone
             const pessoa = pessoas.find(p => {
                 const pPhone = normalizePhone(p.whatsapp);
                 return pPhone && pPhone.endsWith(mPhone.substring(mPhone.length - 8));
             });
 
-            const nomePessoa = pessoa ? pessoa.nome : `<span style="color:var(--accent-warning);">Desconhecido (${m.wa_id})</span>`;
+            const nomePessoa = pessoa ? pessoa.nome : `<span style="color:var(--accent-warning);">?</span>`;
             const pId = pessoa ? pessoa.id : null;
+            const textoExibicao = m.texto || '---';
 
             return `
                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
@@ -3622,10 +3709,10 @@ async function syncCloudData() {
                         <div style="font-size: 0.75rem; color: var(--text-muted);">${new Date(m.timestamp).toLocaleString()}</div>
                     </td>
                     <td style="padding: 12px; font-size: 0.85rem; color: var(--text-primary);">
-                        ${m.corpo || (m.tipo === 'image' ? '📸 Cupom Fiscal' : '---')}
+                        ${textoExibicao}
                     </td>
                     <td style="padding: 12px; text-align: right;">
-                        <button class="btn btn-primary" onclick="importCloudMessage('${m.id}', '${m.corpo.replace(/'/g, "\\'")}', ${pId})" style="padding: 6px 12px; font-size: 0.75rem;">
+                        <button class="btn btn-primary" onclick="importCloudMessage('${m.id}', '${textoExibicao.replace(/'/g, "\\'")}', ${pId})" style="padding: 6px 12px; font-size: 0.75rem;">
                             Carregar
                         </button>
                     </td>
@@ -3633,7 +3720,7 @@ async function syncCloudData() {
             `;
         }).join('');
 
-        // 2. Mostrar o Modal de Carga de Dados (Só aparece se tiver algo novo)
+        // 2. Mostrar o Modal de Carga de Dados
         showModal('Novos Dados do WhatsApp Detectados', `
             <div style="padding: 0.5rem;">
                 <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 1rem; font-weight: 600;">
@@ -3736,23 +3823,33 @@ async function checkCloudStatus() {
         const waStatusText = document.getElementById('waConnectionStatus');
 
         if (admin && admin.cloud_activated) {
-            badge.innerHTML = '<i class="fas fa-check-circle"></i> Sincronização Ativa';
-            badge.style.background = 'rgba(37, 211, 102, 0.2)';
-            badge.style.color = '#25d366';
-            btn.style.display = 'none';
-            tokenInfo.style.display = 'block';
-            const token = admin.cloud_token || 'Gerando...';
-            tokenInfo.innerText = `ID: ${token.substring(0, 15)}...`;
+            if (btnActivate) btnActivate.style.display = 'none';
+            if (btnConnect) btnConnect.style.display = 'block';
 
-            // Libera o WhatsApp
-            if (waReqMsg) waReqMsg.style.display = 'none';
-            // Chama a função original de status do WA que já existe no dashboard.js
-            if (typeof window.updateWaStatusUI === 'function') window.updateWaStatusUI();
-            else checkWaStatus(); 
+            if (admin.cloud_bot_url) {
+                const status = await window.api.getCloudBotStatus(admin.cloud_bot_url);
+                if (status.success && status.data.whatsapp_connected) {
+                    if (badge) {
+                        badge.innerHTML = '<i class="fas fa-check-circle"></i> Robô na Nuvem Conectado';
+                        badge.className = 'status-badge text-success';
+                    }
+                    if (cloudIcon) cloudIcon.style.color = '#25d366';
+                } else {
+                    if (badge) {
+                        badge.innerHTML = '<i class="fas fa-qrcode"></i> Nuvem Aguardando Conexão';
+                        badge.className = 'status-badge text-warning';
+                    }
+                    if (cloudIcon) cloudIcon.style.color = '#f39c12';
+                }
+            } else {
+                if (badge) badge.innerHTML = '<i class="fas fa-info-circle"></i> Insira a URL acima';
+            }
+
+            if (tokenInfo) {
+                tokenInfo.style.display = 'block';
+                tokenInfo.innerText = `Token: ${admin.cloud_token}`;
+            }
         } else {
-            badge.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Não Ativada';
-            badge.style.background = 'rgba(231, 76, 60, 0.2)';
-            badge.style.color = '#e74c3c';
             btn.style.display = 'block';
             tokenInfo.style.display = 'none';
 

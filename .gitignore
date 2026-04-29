@@ -11,6 +11,8 @@ database/
 .DS_Store
 test_wa_data/
 build-output/
+build-output2/
+dist/
 tmp_*.json
 *.py
 .openclaude-profile.json

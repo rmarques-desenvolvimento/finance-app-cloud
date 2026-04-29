@@ -102,9 +102,31 @@ client.on('message_create', async (msg) => {
         if (body.includes('\u200B')) return;
 
         lastMsg = body;
-        console.log(`[ZAP] Mensagem de ${contact.pushname}: ${body}`);
+        console.log(`[ZAP] Mensagem de ${contact.pushname} (${contact.number}): ${body}`);
+
+        // --- SALVAMENTO AUTOMÁTICO (BACKUP) ---
+        // Se não for um comando do bot (não começa com \u200B), salvamos no Supabase como pendente
+        // Isso garante que NENHUMA mensagem se perca, mesmo que o usuário não use o menu.
+        if (!body.includes('\u200B') && body.length > 0) {
+            console.log(`[CLOUD] Salvando mensagem de backup no Supabase...`);
+            const { error: insertError } = await supabase.from('mensagens_zap').insert({
+                sync_token: CLOUD_TOKEN,
+                texto: body,
+                remetente_nome: contact.pushname || contact.number,
+                remetente_fone: contact.number,
+                status: 'pendente',
+                timestamp: new Date().toISOString()
+            });
+
+            if (insertError) {
+                console.error('[SUPABASE ERROR]', insertError);
+            } else {
+                console.log('[CLOUD] Mensagem salva com sucesso no Supabase.');
+            }
+        }
 
         let state = waBotStates.get(senderId) || { step: 'IDLE', data: {} };
+        // ... (resto da lógica da máquina de estados permanece igual para quem quiser usar o menu)
 
         // Comando de Cancelar
         if (lowerBody === 'cancelar' || lowerBody === '!cancelar') {

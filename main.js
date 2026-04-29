@@ -1518,16 +1518,42 @@ ipcMain.handle('activate-cloud-sync', async (event, { userData, userId }) => {
         const id = userId || 1;
         logToFile(`[CLOUD] Ativando sincronização para: ${userData.nome} (ID: ${id})`);
         
-        // 1. Gera um token baseado no nome + whatsapp + timestamp
-        const syncToken = Buffer.from(`${userData.nome}-${userData.whatsapp}-${Date.now()}`).toString('base64');
+        // Para o Ricardo, usamos o token fixo que já está no cloud_bot.js
+        let syncToken = 'RICARDO-FINANCE-CLOUD-2026';
+        
+        // Se for outro usuário, gera um aleatório (futuro multi-tenant real)
+        if (userData.nome.toLowerCase() !== 'ricardo') {
+            syncToken = Buffer.from(`${userData.nome}-${userData.whatsapp}-${Date.now()}`).toString('base64').substring(0, 20);
+        }
 
-        // 2. Salva no banco local do cliente para o usuário específico
+        // 2. Salva no banco local do cliente
         db.run('UPDATE usuarios SET cloud_token = ?, cloud_activated = 1 WHERE id = ?', [syncToken, id]);
         saveDatabase();
 
         return { success: true, token: syncToken };
     } catch (err) {
         logToFile(`[CLOUD] Erro na ativação: ${err.message}`);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('set-cloud-bot-url', async (event, { userId, url }) => {
+    try {
+        const id = userId || 1;
+        db.run('UPDATE usuarios SET cloud_bot_url = ? WHERE id = ?', [url, id]);
+        saveDatabase();
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('get-cloud-bot-status', async (event, url) => {
+    try {
+        const axios = require('axios');
+        const res = await axios.get(`${url}/status`, { timeout: 5000 });
+        return { success: true, data: res.data };
+    } catch (err) {
         return { success: false, error: err.message };
     }
 });
@@ -2503,7 +2529,12 @@ try {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       processado INTEGER DEFAULT 0,
       processado_em DATETIME
-    )
+    );
+
+    // Garante que a coluna cloud_bot_url existe na tabela usuarios
+    try {
+        db.run('ALTER TABLE usuarios ADD COLUMN cloud_bot_url TEXT');
+    } catch(e) {}
   `);
 } catch(e) {}
 
