@@ -4,7 +4,7 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 
-let currentQR = "";
+let lastMsg = "Nenhuma mensagem recebida ainda";
 
 // Servidor Web Simples para o Render não "dormir"
 app.get('/', (req, res) => {
@@ -24,11 +24,23 @@ app.get('/', (req, res) => {
         res.send(`
             <div style="text-align:center; font-family:sans-serif; padding: 50px; background: #0a0e1a; color: white; min-height: 100vh;">
                 <h1 style="color: #6366f1;">🚀 Finance Bot Cloud está ON!</h1>
-                <p>Status: Aguardando QR Code ou já conectado.</p>
-                <p style="color: #888;">Se você já escaneou, o bot está operando em segundo plano.</p>
+                <p>Status: Robô Conectado e ouvindo mensagens.</p>
+                <p style="color: #888;">Última mensagem vista: <b>${lastMsg}</b></p>
+                <hr style="border: 0; border-top: 1px solid #333; margin: 30px 0;">
+                <p><a href="/status" style="color: #6366f1; text-decoration: none;">Ver Status Detalhado</a></p>
             </div>
         `);
     }
+});
+
+app.get('/status', (req, res) => {
+    res.json({
+        online: true,
+        whatsapp_connected: client.info ? true : false,
+        has_qr: currentQR ? true : false,
+        last_message: lastMsg,
+        timestamp: new Date().toISOString()
+    });
 });
 
 app.listen(port, () => console.log(`Servidor de monitoramento rodando na porta ${port}`));
@@ -88,6 +100,7 @@ client.on('message_create', async (msg) => {
         // Filtra ecos do próprio bot
         if (body.includes('\u200B')) return;
 
+        lastMsg = body;
         console.log(`[ZAP] Mensagem de ${contact.pushname}: ${body}`);
 
         let state = waBotStates.get(senderId) || { step: 'IDLE', data: {} };
