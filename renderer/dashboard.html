@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: file: app-file: https:; connect-src 'self' https:">
+  <title>Controle Financeiro</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2'><path d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css?v=14">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <i class="fas fa-wallet"></i>
+        </div>
+        <h2>Financeiro</h2>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-view="dashboard">
+          <i class="fas fa-th-large"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-view="cartoes">
+          <i class="fas fa-credit-card"></i>
+          <span>Cartões</span>
+        </a>
+        <a href="#" class="nav-item" data-view="despesas">
+          <i class="fas fa-file-invoice-dollar"></i>
+          <span>Despesas Fixas</span>
+        </a>
+        <a href="#" class="nav-item" data-view="estabelecimentos">
+          <i class="fas fa-store"></i>
+          <span>Estabelecimentos</span>
+        </a>
+        <a href="#" class="nav-item" data-view="setup">
+          <i class="fas fa-cog"></i>
+          <span>Setup</span>
+        </a>
+      </nav>
+      
+            <div class="user-profile" id="userProfileBtn" style="cursor: pointer;" title="Editar meu perfil">
+                <div class="user-avatar" id="userAvatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-info">
+                    <span class="user-name" id="userNameLabel">Ricardo</span>
+                    <span class="user-status">Administrador</span>
+                </div>
+                <div class="user-actions">
+                    <i class="fas fa-cog"></i>
+                </div>
+            </div>
+      
+      <div class="sidebar-footer">
+      </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <button class="menu-toggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        
+        <div class="top-bar-title">
+          <h1 id="pageTitle">Dashboard</h1>
+        </div>
+        
+        <div class="top-bar-actions">
+          <button class="btn-icon" id="whatsappStatusBtn" title="Status WhatsApp" style="position: relative;">
+            <i class="fab fa-whatsapp" id="whatsappStatusIcon" style="color: #e74c3c; font-size: 1.4rem;"></i>
+          </button>
+          <button class="btn-icon" id="closeBtn" title="Fechar">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </header>
+      
+      <!-- Content Area -->
+      <div class="content-area" id="contentArea">
+        <!-- Dashboard View -->
+        <div class="dashboard-view" id="dashboardView">
+          <div class="page-header">
+            <h2>Pessoas</h2>
+            <button class="btn btn-primary" id="addPessoaBtn">
+              <i class="fas fa-plus"></i> Nova Pessoa
+            </button>
+          </div>
+          
+          <div class="alerts-container" id="alertsContainer" style="display: none;"></div>
+          
+          <div class="people-grid" id="peopleGrid"></div>
+        </div>
+        
+        <!-- Pessoa Detail View -->
+        <div class="pessoa-view" id="pessoaView" style="display: none;">
+          <!-- Ocultamos o header antigo redundante -->
+          <div class="page-header" style="display: none;"><h2 id="pessoaNome"></h2></div>
+          
+          <div class="pessoa-header" style="position: sticky; top: 0; z-index: 45; background: var(--bg-card); border-bottom: 2px solid rgba(99, 102, 241, 0.4); padding: 1rem 1.5rem; margin-bottom: 0; box-shadow: 0 8px 25px rgba(0,0,0,0.25);">
+            <div class="pessoa-info" style="width: 100%; display: flex; align-items: center; gap: 1.25rem;">
+              <img id="pessoaFoto" src="" alt="Foto" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-primary); flex-shrink: 0;">
+              
+              <div class="pessoa-stats" style="flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+                <!-- Bloco de Dados e Filtros -->
+                <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                  <div class="stat-card" style="margin: 0; background: transparent; padding: 0; border: none; box-shadow: none;">
+                    <span class="stat-label" style="font-size: 0.6rem; color: var(--text-muted); opacity: 0.8;">TOTAL (GASTO + PREVISTO)</span>
+                    <span class="stat-value" id="totalMes" style="font-size: 1.3rem; color: var(--accent-primary); font-weight: 800;">R$ 0,00</span>
+                  </div>
+                  
+                  <div style="display: flex; gap: 8px; align-items: flex-end;">
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                      <span class="stat-label" style="font-size: 0.6rem;">ANO</span>
+                      <select id="yearSelect" class="form-control" style="width: 85px; height: 38px; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);"></select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                      <span class="stat-label" style="font-size: 0.6rem;">MÊS</span>
+                      <select id="monthSelect" class="form-control" style="width: 110px; height: 38px; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);"></select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                      <span class="stat-label" style="font-size: 0.6rem;">ENTRADA REALIZADA</span>
+                      <input type="text" id="entradaValorInput" class="form-control" style="width: 260px; height: 38px; padding: 0 10px; text-align: center; font-size: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);" placeholder="R$ 0,00" />
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                      <span class="stat-label" style="font-size: 0.6rem;">SUB-TOTAL</span>
+                      <input type="text" id="subTotalValor" class="form-control" readonly style="width: 260px; height: 38px; padding: 0 10px; text-align: center; font-size: 0.85rem; color: var(--accent-warning); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); pointer-events: none;" value="R$ 0,00" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Botão Voltar à direita conforme solicitado -->
+                <button class="btn btn-secondary" id="backToDashboard" style="height: 38px; border-radius: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 8px; font-weight: 600; padding: 0 1.25rem;">
+                  <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+              </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.05);">
+              <div class="pessoa-actions" style="margin: 0; display: flex; gap: 0.5rem; align-items: center;">
+                <button class="btn btn-primary" id="addGastoBtn" style="height: 38px;"><i class="fas fa-plus"></i> Novo Gasto</button>
+                <button class="btn btn-secondary" id="syncFixasBtn" title="Re-gerar despesas fixas faltantes" style="height: 38px;"><i class="fas fa-sync"></i> Sincronizar Fixas</button>
+                <button class="btn btn-secondary" id="scanCupomBtn" style="height: 38px;"><i class="fas fa-camera"></i> Escanear Cupom</button>
+                <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.1); padding: 0 1rem; height: 38px; border-radius: var(--radius-md); border: 1px solid rgba(99, 102, 241, 0.2); margin-left: 0.5rem;">
+                  <input type="checkbox" id="selectAllPaga" style="width: 1.1rem; height: 1.1rem; cursor: pointer;">
+                  <label for="selectAllPaga" style="font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-primary); margin-bottom:0; white-space: nowrap;">Marcar todos como Pago</label>
+                </div>
+              </div>
+              <div class="bulk-actions" id="bulkActionsContainer" style="margin: 0; display: flex; align-items: center; gap: 1rem;">
+                <div id="selectedCountContainer" style="display: none; align-items: center; gap: 1rem;">
+                  <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-success);">Selecionado: <span id="selectedTotal">R$ 0,00</span></div>
+                  <button class="btn btn-primary btn-sm" id="payBulkPixBtn" style="height: 38px;"><i class="fas fa-qrcode"></i> Pagar PIX</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="expenses-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 1.5rem; gap: 1rem;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-list-ul" style="color: var(--accent-primary);"></i> Listagem de Lançamentos
+            </div>
+            
+            <div id="gastosScrollBox" style="flex: 1; overflow-y: auto; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 1rem; position: relative;">
+              <div id="gastosList" class="gastos-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Cartões View -->
+        <div class="cartoes-view" id="cartoesView" style="display: none;">
+          <div class="page-header">
+            <h2>Cartões de Crédito</h2>
+            <button class="btn btn-primary" id="addCartaoBtn">
+              <i class="fas fa-plus"></i> Novo Cartão
+            </button>
+          </div>
+          <div class="cartoes-grid" id="cartoesGrid"></div>
+        </div>
+        
+        <!-- Despesas Fixas View -->
+        <div class="despesas-view" id="despesasView" style="display: none;">
+          <div class="page-header">
+            <h2>Despesas Fixas</h2>
+            <button class="btn btn-primary" id="addDespesaBtn">
+              <i class="fas fa-plus"></i> Nova Despesa
+            </button>
+          </div>
+          <div class="despesas-list" id="despesasList"></div>
+        </div>
+        
+        <!-- Estabelecimentos View -->
+        <div class="estabelecimentos-view" id="estabelecimentosView" style="display: none;">
+          <div class="page-header">
+            <h2>Estabelecimentos</h2>
+            <button class="btn btn-primary" id="addEstabelecimentoBtn">
+              <i class="fas fa-plus"></i> Novo Estabelecimento
+            </button>
+          </div>
+          <div class="estabelecimentos-list" id="estabelecimentosList"></div>
+        </div>
+
+        <!-- Setup View -->
+        <div class="setup-view" id="setupView" style="display: none;">
+          <div class="page-header">
+            <h2>Configurações</h2>
+          </div>
+          <div class="setup-container" id="setupContent">
+            <!-- Conteúdo do Setup gerado dinamicamente -->
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <!-- Modal -->
+  <div class="modal" id="modalContainer">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Título</h3>
+        <button class="modal-close" id="modalClose">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="js/dashboard.js?v=11"></script>
+</body>
+</html>

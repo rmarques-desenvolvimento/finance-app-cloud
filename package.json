@@ -1,0 +1,58 @@
+{
+  "name": "finance-app",
+  "version": "1.0.0",
+  "description": "Controle Financeiro Pessoal - Electron.js",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "build": "electron-builder --win --x64",
+    "pack": "electron-builder --dir",
+    "cloud-bot": "node cloud_bot.js"
+  },
+  "author": "Ricardo",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.104.1",
+    "axios": "^1.6.2",
+    "express": "^4.18.2",
+    "electron-store": "^8.1.0",
+    "qrcode": "^1.5.4",
+    "sql.js": "^1.14.1",
+    "tesseract.js": "^5.0.4",
+    "whatsapp-web.js": "^1.34.6"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.financeapp.controlefinanceiro",
+    "productName": "finance-app",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "icon": "assets/icons/wallet-icon.png",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "finance-app-${version}.${ext}"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "whatsapp_service.js",
+      "renderer/**/*",
+      "assets/**/*",
+      "database/**/*",
+      "uploads/**/*",
+      "scripts/**/*"
+    ]
+  }
+}

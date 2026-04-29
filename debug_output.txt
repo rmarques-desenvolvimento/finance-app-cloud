@@ -1,0 +1,6 @@
+﻿--- GASTOS ATIVOS MERCADO PAGO (QUALQUER DATA) ---
+{"id":101,"pessoa_id":2,"cartao_id":2,"cupom_id":null,"estabelecimento_id":11,"descricao":"P├úozinho","valor":10.65,"data":"2026-05-08","categoria":"Combust├¡vel","observacao":"","parcela_atual":1,"total_parcelas":1,"is_parcelado":0,"created_at":"2026-04-08 11:47:15","despesa_fixa_id":null,"status":1,"paga":0,"quantidade":1,"descricao_pdf":"Queco","pix_chave":null,"pix_nome":null,"cartao_nome":"Mercado Pago"}
+{"id":102,"pessoa_id":2,"cartao_id":2,"cupom_id":null,"estabelecimento_id":null,"descricao":"2 Ma├ºo de cigarro","valor":10,"data":"2026-05-08","categoria":"Mercado","observacao":"","parcela_atual":1,"total_parcelas":1,"is_parcelado":0,"created_at":"2026-04-08 11:58:40","despesa_fixa_id":null,"status":1,"paga":0,"quantidade":1,"descricao_pdf":"Mercadinho","pix_chave":null,"pix_nome":null,"cartao_nome":"Mercado Pago"}
+{"id":103,"pessoa_id":2,"cartao_id":2,"cupom_id":null,"estabelecimento_id":null,"descricao":"Servejas e Salgadinho (Luzinete)","valor":60,"data":"2026-05-10","categoria":"Mercado","observacao":"","parcela_atual":1,"total_parcelas":1,"is_parcelado":0,"created_at":"2026-04-08 12:00:29","despesa_fixa_id":null,"status":1,"paga":0,"quantidade":1,"descricao_pdf":"Mercadinho","pix_chave":null,"pix_nome":null,"cartao_nome":"Mercado Pago"}
+--- PARCELAS ATIVAS MERCADO PAGO (QUALQUER DATA) ---
+[]
