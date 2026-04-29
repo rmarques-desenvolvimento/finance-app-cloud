@@ -77,38 +77,53 @@ const client = new Client({
     }
 });
 
-client.on('qr', (qr) => {
+// Função de Telemetria para depuração remota
+async function logToSupabase(level, mensagem, dados = {}) {
+    console.log(`[LOG ${level}] ${mensagem}`);
+    try {
+        await supabase.from('logs_bot').insert({
+            level,
+            mensagem,
+            dados,
+            criado_em: new Date().toISOString()
+        });
+    } catch (e) {
+        console.error('Erro ao enviar log para Supabase', e);
+    }
+}
+
+client.on('qr', async (qr) => {
     currentQR = qr;
     console.log('[QR CODE] Recebido.');
+    await logToSupabase('INFO', 'QR Code Gerado', { qr });
 });
 
-client.on('ready', () => {
+client.on('ready', async () => {
     currentQR = "";
     console.log('[STATUS] Bot de Nuvem CONECTADO!');
+    await logToSupabase('SUCCESS', 'Bot Conectado e Pronto');
 });
 
 client.on('message_create', async (msg) => {
     try {
         const chat = await msg.getChat();
         const contact = await msg.getContact();
-        const senderId = msg.fromMe ? client.info.wid._serialized : contact.id._serialized;
         const body = msg.body ? msg.body.trim() : '';
-        const lowerBody = body.toLowerCase();
+        
+        await logToSupabase('DEBUG', `Mensagem recebida de ${contact.number}`, { 
+            body, 
+            isGroup: chat.isGroup, 
+            groupName: chat.name 
+        });
 
         // Ignora mensagens de outros grupos que não sejam do controle
         if (chat.isGroup && !chat.name.toUpperCase().includes('CONTROLE')) return;
-
-        // Filtra ecos do próprio bot
         if (body.includes('\u200B')) return;
 
         lastMsg = body;
-        console.log(`[ZAP] Mensagem de ${contact.pushname} (${contact.number}): ${body}`);
 
         // --- SALVAMENTO AUTOMÁTICO (BACKUP) ---
-        // Se não for um comando do bot (não começa com \u200B), salvamos no Supabase como pendente
-        // Isso garante que NENHUMA mensagem se perca, mesmo que o usuário não use o menu.
         if (!body.includes('\u200B') && body.length > 0) {
-            console.log(`[CLOUD] Salvando mensagem de backup no Supabase...`);
             const { error: insertError } = await supabase.from('mensagens_zap').insert({
                 sync_token: CLOUD_TOKEN,
                 texto: body,
@@ -119,11 +134,13 @@ client.on('message_create', async (msg) => {
             });
 
             if (insertError) {
-                console.error('[SUPABASE ERROR]', insertError);
+                await logToSupabase('ERROR', 'Falha ao salvar mensagem', { error: insertError, body });
             } else {
-                console.log('[CLOUD] Mensagem salva com sucesso no Supabase.');
+                await logToSupabase('INFO', 'Mensagem salva com sucesso', { body });
             }
         }
+        
+        // ... resto da lógica
 
         let state = waBotStates.get(senderId) || { step: 'IDLE', data: {} };
         // ... (resto da lógica da máquina de estados permanece igual para quem quiser usar o menu)
