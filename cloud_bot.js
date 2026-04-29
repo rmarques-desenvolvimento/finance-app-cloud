@@ -25,7 +25,7 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6Ik
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const CLOUD_TOKEN = 'RICARDO-FINANCE-CLOUD-2026';
 const BUCKET = 'whatsapp-sessions';
-const SESSION_ID = 'cloud-bot-ricardo';
+const SESSION_ID = 'cloud-bot-ricardo-v3';
 
 // ====================================================
 // LOG REMOTO
