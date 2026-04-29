@@ -4,7 +4,8 @@
  * a qualquer reinicialização do Render.
  */
 
-const { Client, RemoteAuth } = require('whatsapp-web.js');
+// Última atualização: 2026-04-29 14:04 - Forçando Pareamento
+const { Client, LocalAuth, RemoteAuth, MessageMedia } = require('whatsapp-web.js');
 const { createClient } = require('@supabase/supabase-js');
 const express = require('express');
 const fs = require('fs');
