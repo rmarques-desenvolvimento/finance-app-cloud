@@ -25,7 +25,7 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6Ik
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const CLOUD_TOKEN = 'RICARDO-FINANCE-CLOUD-2026';
 const BUCKET = 'whatsapp-sessions';
-const SESSION_ID = 'cloud-bot-ricardo-v3';
+const SESSION_ID = 'cloud-bot-ricardo-v4';
 
 // ====================================================
 // LOG REMOTO
@@ -204,14 +204,9 @@ const client = new Client({
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu',
-            '--disable-extensions',
-            '--single-process'
-        ]
+            '--disable-dev-shm-usage'
+        ],
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     }
 });
 
