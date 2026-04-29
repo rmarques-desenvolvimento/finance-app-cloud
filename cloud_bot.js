@@ -33,15 +33,15 @@ app.get('/', (req, res) => {
 
 app.listen(port, () => console.log(`Servidor de monitoramento rodando na porta ${port}`));
 
-// Configuração Supabase (Copiada do seu App)
+// Configuração Supabase
 const supabaseUrl = 'https://ostmikofmcgxsdjznrcs.supabase.co';
 const supabaseKey = 'sb_publishable_o7H6EPd2yKOF_iuQnSq1xg_KBgf1Iuv';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Token de Sincronização do Ricardo
 const CLOUD_TOKEN = 'RICARDO-FINANCE-CLOUD-2026';
 
-console.log('--- INICIALIZANDO FINANCE-BOT CLOUD ---');
+// Memória temporária de estados (qual menu o usuário está)
+const waBotStates = new Map();
 
 const client = new Client({
     authStrategy: new LocalAuth({
@@ -53,47 +53,149 @@ const client = new Client({
     }
 });
 
-// Evento para exibir QR Code
 client.on('qr', (qr) => {
     currentQR = qr;
-    console.log('\n[QR CODE] Recebido. Acesse a URL do Render para escanear.');
+    console.log('[QR CODE] Recebido.');
 });
 
 client.on('ready', () => {
     currentQR = "";
-    console.log('\n[STATUS] Bot de Nuvem CONECTADO e pronto!');
-    console.log('Ouvindo mensagens do WhatsApp...');
+    console.log('[STATUS] Bot de Nuvem CONECTADO!');
 });
 
 client.on('message', async (msg) => {
     try {
+        const chat = await msg.getChat();
         const contact = await msg.getContact();
-        const body = msg.body;
-        const phone = contact.number;
-        const name = contact.pushname || contact.name || 'Desconhecido';
+        const senderId = contact.id._serialized;
+        const body = msg.body.trim();
+        const lowerBody = body.toLowerCase();
 
-        console.log(`[ZAP] Mensagem de ${name} (${phone}): ${body}`);
+        // Ignora mensagens de outros grupos que não sejam do controle
+        if (chat.isGroup && !chat.name.toUpperCase().includes('CONTROLE')) return;
 
-        // Salva a mensagem no Supabase para o App processar depois
-        const { error } = await supabase
-            .from('mensagens_zap')
-            .insert({
+        console.log(`[ZAP] Mensagem de ${contact.pushname}: ${body}`);
+
+        let state = waBotStates.get(senderId) || { step: 'IDLE', data: {} };
+
+        // Comando de Cancelar
+        if (lowerBody === 'cancelar' || lowerBody === '!cancelar') {
+            waBotStates.delete(senderId);
+            await msg.reply('❌ Operação cancelada. Digite "Oi" para começar de novo.');
+            return;
+        }
+
+        // --- MÁQUINA DE ESTADOS (INTELIGÊNCIA DO BOT) ---
+        
+        // 1. Menu Inicial
+        if (state.step === 'IDLE' && (lowerBody === 'oi' || lowerBody === 'menu' || lowerBody === 'olá')) {
+            // Busca pessoas no Supabase
+            const { data: pessoas } = await supabase.from('cloud_pessoas').select('*').eq('sync_token', CLOUD_TOKEN);
+            
+            let menu = "👋 *Olá! Eu sou o seu Assistente Financeiro Cloud.*\n\nEscolha a pessoa digitando o número:\n";
+            
+            // Se não tiver pessoas no cloud ainda, usa as padrão do Ricardo
+            const listaPessoas = (pessoas && pessoas.length > 0) ? pessoas : [
+                { pessoa_id: 1, nome: 'Cris' },
+                { pessoa_id: 2, nome: 'Pai' },
+                { pessoa_id: 3, nome: 'Ricardo' }
+            ];
+
+            listaPessoas.forEach((p, i) => {
+                menu += `\n${i + 1}️⃣  *${p.nome}*`;
+            });
+
+            menu += "\n\n_Ou mande uma foto de cupom a qualquer momento._";
+            
+            waBotStates.set(senderId, { step: 'SELECT_PERSON', data: { lista: listaPessoas } });
+            await msg.reply(menu);
+            return;
+        }
+
+        // 2. Seleção de Pessoa
+        if (state.step === 'SELECT_PERSON') {
+            const idx = parseInt(body) - 1;
+            const selecionada = state.data.lista[idx];
+
+            if (selecionada) {
+                waBotStates.set(senderId, { 
+                    step: 'SELECT_ACTION', 
+                    data: { person_id: selecionada.pessoa_id, person_name: selecionada.nome } 
+                });
+                await msg.reply(`👤 Selecionado: *${selecionada.nome}*\n\nO que deseja fazer?\n\n1️⃣  *Adicionar Gasto (Texto)*\n2️⃣  *Mandar Foto de Cupom*\n0️⃣  *Voltar*`);
+            } else {
+                await msg.reply('❌ Opção inválida. Escolha um número da lista ou digite "cancelar".');
+            }
+            return;
+        }
+
+        // 3. Seleção de Ação
+        if (state.step === 'SELECT_ACTION') {
+            if (body === '0') {
+                waBotStates.set(senderId, { step: 'IDLE', data: {} });
+                await msg.reply('Voltando... Digite "Oi" para o menu.');
+                return;
+            }
+            if (body === '1') {
+                waBotStates.set(senderId, { step: 'WAIT_VALUE', data: { ...state.data } });
+                await msg.reply('💰 *Qual o valor do gasto?*\n_(Ex: 25,50)_');
+            } else if (body === '2') {
+                waBotStates.set(senderId, { step: 'IDLE', data: { ...state.data } });
+                await msg.reply('📸 Pode enviar a foto do cupom agora!');
+            }
+            return;
+        }
+
+        // 4. Aguardando Valor
+        if (state.step === 'WAIT_VALUE') {
+            const valor = body.replace(',', '.').replace(/[^\d.]/g, '');
+            if (valor && !isNaN(parseFloat(valor))) {
+                state.data.valor = valor;
+                state.step = 'WAIT_DESC';
+                waBotStates.set(senderId, state);
+                await msg.reply(`✅ Valor: R$ ${valor}\n\n📝 *Qual a descrição do gasto?*\n_(Ex: Mercado, Almoço, Gasolina)_`);
+            } else {
+                await msg.reply('❌ Valor inválido. Digite apenas números e vírgula.');
+            }
+            return;
+        }
+
+        // 5. Aguardando Descrição
+        if (state.step === 'WAIT_DESC') {
+            state.data.descricao = body;
+            state.step = 'IDLE'; // Finaliza e salva
+            waBotStates.delete(senderId);
+
+            // SALVA NO SUPABASE PARA O APP NO PC LER
+            await supabase.from('mensagens_zap').insert({
                 sync_token: CLOUD_TOKEN,
-                texto: body,
-                remetente_nome: name,
-                remetente_fone: phone,
+                texto: `${state.data.person_name}: Gasto de R$ ${state.data.valor} - ${body}`,
+                remetente_nome: contact.pushname,
+                remetente_fone: contact.number,
                 status: 'pendente',
                 timestamp: new Date().toISOString()
             });
 
-        if (error) {
-            console.error('[SUPABASE] Erro ao salvar mensagem:', error);
-        } else {
-            console.log('[SUPABASE] Mensagem enviada para a nuvem com sucesso! O App no PC processará quando for aberto.');
+            await msg.reply(`🎉 Gasto de *R$ ${state.data.valor}* em *${body}* salvo para *${state.data.person_name}* com sucesso! ✅`);
+            return;
+        }
+
+        // Trata fotos de cupom (Se enviar foto sem estar em menu)
+        if (msg.hasMedia) {
+            await supabase.from('mensagens_zap').insert({
+                sync_token: CLOUD_TOKEN,
+                texto: `[FOTO DE CUPOM] Enviada por ${contact.pushname}`,
+                remetente_nome: contact.pushname,
+                remetente_fone: contact.number,
+                status: 'pendente',
+                timestamp: new Date().toISOString()
+            });
+            await msg.reply('📸 Cupom recebido! Vou processar o OCR quando você abrir o aplicativo no computador.');
+            return;
         }
 
     } catch (err) {
-        console.error('[ERRO] Falha ao processar mensagem:', err);
+        console.error('[ERRO]', err);
     }
 });
 

@@ -540,6 +540,22 @@ ipcMain.handle('get-pessoas', async () => {
     results.push(stmt.getAsObject());
   }
   stmt.free();
+
+  // Sincroniza com Supabase para o Robô de Nuvem saber quem são
+  try {
+    const { data: userData } = await supabase.from('usuarios').select('cloud_token').eq('usuario', 'admin').single();
+    if (userData && userData.cloud_token) {
+        await supabase.from('cloud_pessoas').upsert(
+            results.map(p => ({
+                sync_token: userData.cloud_token,
+                pessoa_id: p.id,
+                nome: p.nome
+            })),
+            { onConflict: 'sync_token,pessoa_id' }
+        );
+    }
+  } catch (e) { logToFile(`[CLOUD-SYNC] Erro ao sincronizar pessoas: ${e.message}`); }
+
   return results;
 });
 
