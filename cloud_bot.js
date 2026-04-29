@@ -197,14 +197,20 @@ const client = new Client({
         clientId: SESSION_ID,
         dataPath: './whatsapp_session_cloud',
         store: store,
-        backupSyncIntervalMs: 5 * 60 * 1000 // Salva sessão a cada 5 minutos
+        backupSyncIntervalMs: 5 * 60 * 1000
     }),
+    webVersion: '2.3000.1018921047', // Versão específica estável
+    webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1018921047.html',
+    },
     puppeteer: {
         headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage'
+            '--disable-dev-shm-usage',
+            '--disable-gpu'
         ],
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     }
