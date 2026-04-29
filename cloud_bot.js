@@ -74,16 +74,19 @@ client.on('ready', () => {
     console.log('[STATUS] Bot de Nuvem CONECTADO!');
 });
 
-client.on('message', async (msg) => {
+client.on('message_create', async (msg) => {
     try {
         const chat = await msg.getChat();
         const contact = await msg.getContact();
-        const senderId = contact.id._serialized;
-        const body = msg.body.trim();
+        const senderId = msg.fromMe ? client.info.wid._serialized : contact.id._serialized;
+        const body = msg.body ? msg.body.trim() : '';
         const lowerBody = body.toLowerCase();
 
         // Ignora mensagens de outros grupos que não sejam do controle
         if (chat.isGroup && !chat.name.toUpperCase().includes('CONTROLE')) return;
+
+        // Filtra ecos do próprio bot
+        if (body.includes('\u200B')) return;
 
         console.log(`[ZAP] Mensagem de ${contact.pushname}: ${body}`);
 
@@ -119,7 +122,7 @@ client.on('message', async (msg) => {
             menu += "\n\n_Ou mande uma foto de cupom a qualquer momento._";
             
             waBotStates.set(senderId, { step: 'SELECT_PERSON', data: { lista: listaPessoas } });
-            await msg.reply(menu);
+            await msg.reply('\u200B' + menu);
             return;
         }
 
@@ -133,9 +136,9 @@ client.on('message', async (msg) => {
                     step: 'SELECT_ACTION', 
                     data: { person_id: selecionada.pessoa_id, person_name: selecionada.nome } 
                 });
-                await msg.reply(`👤 Selecionado: *${selecionada.nome}*\n\nO que deseja fazer?\n\n1️⃣  *Adicionar Gasto (Texto)*\n2️⃣  *Mandar Foto de Cupom*\n0️⃣  *Voltar*`);
+                await msg.reply('\u200B' + `👤 Selecionado: *${selecionada.nome}*\n\nO que deseja fazer?\n\n1️⃣  *Adicionar Gasto (Texto)*\n2️⃣  *Mandar Foto de Cupom*\n0️⃣  *Voltar*`);
             } else {
-                await msg.reply('❌ Opção inválida. Escolha um número da lista ou digite "cancelar".');
+                await msg.reply('\u200B' + '❌ Opção inválida. Escolha um número da lista ou digite "cancelar".');
             }
             return;
         }
@@ -144,15 +147,15 @@ client.on('message', async (msg) => {
         if (state.step === 'SELECT_ACTION') {
             if (body === '0') {
                 waBotStates.set(senderId, { step: 'IDLE', data: {} });
-                await msg.reply('Voltando... Digite "Oi" para o menu.');
+                await msg.reply('\u200B' + 'Voltando... Digite "Oi" para o menu.');
                 return;
             }
             if (body === '1') {
                 waBotStates.set(senderId, { step: 'WAIT_VALUE', data: { ...state.data } });
-                await msg.reply('💰 *Qual o valor do gasto?*\n_(Ex: 25,50)_');
+                await msg.reply('\u200B' + '💰 *Qual o valor do gasto?*\n_(Ex: 25,50)_');
             } else if (body === '2') {
                 waBotStates.set(senderId, { step: 'IDLE', data: { ...state.data } });
-                await msg.reply('📸 Pode enviar a foto do cupom agora!');
+                await msg.reply('\u200B' + '📸 Pode enviar a foto do cupom agora!');
             }
             return;
         }
@@ -164,9 +167,9 @@ client.on('message', async (msg) => {
                 state.data.valor = valor;
                 state.step = 'WAIT_DESC';
                 waBotStates.set(senderId, state);
-                await msg.reply(`✅ Valor: R$ ${valor}\n\n📝 *Qual a descrição do gasto?*\n_(Ex: Mercado, Almoço, Gasolina)_`);
+                await msg.reply('\u200B' + `✅ Valor: R$ ${valor}\n\n📝 *Qual a descrição do gasto?*\n_(Ex: Mercado, Almoço, Gasolina)_`);
             } else {
-                await msg.reply('❌ Valor inválido. Digite apenas números e vírgula.');
+                await msg.reply('\u200B' + '❌ Valor inválido. Digite apenas números e vírgula.');
             }
             return;
         }
@@ -187,7 +190,7 @@ client.on('message', async (msg) => {
                 timestamp: new Date().toISOString()
             });
 
-            await msg.reply(`🎉 Gasto de *R$ ${state.data.valor}* em *${body}* salvo para *${state.data.person_name}* com sucesso! ✅`);
+            await msg.reply('\u200B' + `🎉 Gasto de *R$ ${state.data.valor}* em *${body}* salvo para *${state.data.person_name}* com sucesso! ✅`);
             return;
         }
 
