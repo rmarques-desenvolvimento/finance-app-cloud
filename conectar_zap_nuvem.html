@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Finance Bot - Conectar WhatsApp</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0e1a;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            gap: 20px;
+        }
+        h1 { color: #6366f1; font-size: 1.8rem; }
+        .status-badge {
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .status-waiting { background: #f59e0b22; color: #f59e0b; border: 1px solid #f59e0b; }
+        .status-connected { background: #2ecc7122; color: #2ecc71; border: 1px solid #2ecc71; }
+        .status-loading { background: #6366f122; color: #6366f1; border: 1px solid #6366f1; }
+        .qr-box {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 300px;
+            height: 300px;
+            transition: opacity 0.3s;
+        }
+        .qr-box img { width: 260px; height: 260px; }
+        .instructions {
+            background: #1a1f35;
+            border-radius: 12px;
+            padding: 20px 30px;
+            max-width: 400px;
+            text-align: left;
+        }
+        .instructions h3 { color: #6366f1; margin-bottom: 12px; }
+        .instructions ol { padding-left: 20px; line-height: 2; color: #b0bec5; }
+        .instructions li b { color: white; }
+        .timer {
+            font-size: 0.75rem;
+            color: #666;
+        }
+        .timer span { color: #6366f1; font-weight: bold; }
+        .success-box {
+            background: #2ecc7122;
+            border: 2px solid #2ecc71;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            display: none;
+        }
+        .success-box h2 { color: #2ecc71; font-size: 2rem; margin-bottom: 10px; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid #6366f1;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <h1>🤖 Finance Bot Cloud</h1>
+    <div class="status-badge status-loading" id="statusBadge">⏳ AGUARDANDO QR CODE...</div>
+
+    <div id="qrContainer" style="display:none;">
+        <div class="qr-box" id="qrBox">
+            <div class="spinner"></div>
+        </div>
+        <p class="timer">Próxima atualização em <span id="countdown">15</span>s</p>
+    </div>
+
+    <div class="success-box" id="successBox">
+        <h2>✅ Conectado!</h2>
+        <p>O Robô da Nuvem está ativo e funcionando.</p>
+        <p style="color:#888; margin-top:10px; font-size:0.85rem;">Pode fechar esta janela.</p>
+    </div>
+
+    <div class="spinner" id="loadingSpinner"></div>
+
+    <div class="instructions" id="instructions" style="display:none;">
+        <h3>📱 Como escanear:</h3>
+        <ol>
+            <li>Abra o <b>WhatsApp</b> no celular</li>
+            <li>Toque nos <b>3 pontos</b> (menu)</li>
+            <li>Toque em <b>"Aparelhos Conectados"</b></li>
+            <li>Toque em <b>"Conectar um aparelho"</b></li>
+            <li>Aponte a câmera para o <b>QR Code</b> acima</li>
+        </ol>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ostmikofmcgxsdjznrcs.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zdG1pa29mbWNneHNkanpucmNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjE1NjQsImV4cCI6MjA5Mjc5NzU2NH0.m9spKtcueSz-VHZONAK-L02FfYWNSDvHjNFL4lWP8_U';
+
+        let countdown = 15;
+        let countdownInterval = null;
+        let lastQrCode = null;
+
+        async function fetchLatestState() {
+            try {
+                // Busca o log mais recente
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/logs_bot?order=criado_em.desc&limit=5`,
+                    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+                );
+                const logs = await response.json();
+                
+                if (!logs || logs.length === 0) return;
+
+                const latestLog = logs[0];
+
+                // Bot conectado?
+                if (latestLog.mensagem && latestLog.mensagem.includes('Bot PRONTO!')) {
+                    showConnected();
+                    return;
+                }
+
+                // Busca QR Code mais recente
+                const qrLog = logs.find(l => l.dados && l.dados.qr);
+                if (qrLog) {
+                    const qrData = qrLog.dados.qr;
+                    if (qrData !== lastQrCode) {
+                        lastQrCode = qrData;
+                        showQR(qrData);
+                    }
+                } else {
+                    // Bot ainda iniciando
+                    document.getElementById('loadingSpinner').style.display = 'block';
+                    document.getElementById('qrContainer').style.display = 'none';
+                    document.getElementById('instructions').style.display = 'none';
+                    document.getElementById('statusBadge').textContent = '⏳ Bot iniciando no Render...';
+                    document.getElementById('statusBadge').className = 'status-badge status-loading';
+                }
+
+            } catch (err) {
+                console.error('Erro ao buscar dados:', err);
+            }
+        }
+
+        function showQR(qrData) {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('qrContainer').style.display = 'flex';
+            document.getElementById('qrContainer').style.flexDirection = 'column';
+            document.getElementById('qrContainer').style.alignItems = 'center';
+            document.getElementById('qrContainer').style.gap = '10px';
+            document.getElementById('instructions').style.display = 'block';
+            document.getElementById('statusBadge').textContent = '📱 ESCANEIE O QR CODE ABAIXO';
+            document.getElementById('statusBadge').className = 'status-badge status-waiting';
+
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(qrData)}`;
+            document.getElementById('qrBox').innerHTML = `<img src="${qrUrl}" alt="QR Code WhatsApp" />`;
+
+            // Reset countdown
+            clearInterval(countdownInterval);
+            countdown = 15;
+            document.getElementById('countdown').textContent = countdown;
+            countdownInterval = setInterval(() => {
+                countdown--;
+                document.getElementById('countdown').textContent = countdown;
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    fetchLatestState();
+                    countdown = 15;
+                }
+            }, 1000);
+        }
+
+        function showConnected() {
+            clearInterval(countdownInterval);
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('qrContainer').style.display = 'none';
+            document.getElementById('instructions').style.display = 'none';
+            document.getElementById('successBox').style.display = 'block';
+            document.getElementById('statusBadge').textContent = '🟢 BOT CONECTADO!';
+            document.getElementById('statusBadge').className = 'status-badge status-connected';
+        }
+
+        // Inicia polling
+        fetchLatestState();
+        setInterval(fetchLatestState, 15000);
+    </script>
+</body>
+</html>
