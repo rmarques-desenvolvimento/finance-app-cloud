@@ -217,16 +217,10 @@ const client = new Client({
     qrMaxRetries: 10      // Tenta gerar o código várias vezes
 });
 
-client.on('qr', async (qr) => {
-    logRemoto('QR Code gerado - Iniciando Pareamento por Número...');
-    
-    // MODO PAREAMENTO POR NÚMERO (Definitivo para Nuvem)
-    try {
-        const pairingCode = await client.requestPairingCode('5511957764815');
-        logRemoto('CÓDIGO DE PAREAMENTO GERADO: ' + pairingCode, { pairingCode });
-    } catch (err) {
-        logRemoto('Erro ao gerar Código de Pareamento', { erro: err.message });
-    }
+client.on('qr', (qr) => {
+    currentQR = qr;
+    botReady = false;
+    logRemoto('Aguardando escaneamento de QR Code (ou sincronização de sessão)...', { qr });
 });
 
 client.on('authenticated', async () => {
