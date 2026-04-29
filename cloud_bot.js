@@ -208,9 +208,13 @@ const client = new Client({
             '--disable-dev-shm-usage',
             '--disable-gpu',
             '--no-zygote',
-            '--single-process'
+            '--single-process',
+            '--disable-extensions',
+            '--disable-component-update'
         ]
-    }
+    },
+    authTimeoutMs: 60000, // Dá 1 minuto para o login
+    qrMaxRetries: 10      // Tenta gerar o código várias vezes
 });
 
 client.on('qr', async (qr) => {
@@ -366,8 +370,19 @@ client.on('message_create', async (msg) => {
 // ====================================================
 // INICIALIZAR
 // ====================================================
-console.log('[INIT] Iniciando Finance Bot Cloud com sessão persistente no Supabase...');
-client.initialize().catch(async (err) => {
-    console.error('[INIT ERROR]', err);
-    await logCloud('ERROR', `Falha ao inicializar: ${err.message}`);
-});
+// Inicialização com Retry
+async function startBot(retries = 3) {
+    console.log(`[INIT] Iniciando Finance Bot Cloud (Tentativas restantes: ${retries})...`);
+    try {
+        await client.initialize();
+    } catch (err) {
+        console.error('[INIT ERROR]', err);
+        await logCloud('ERROR', `Falha ao inicializar: ${err.message}`);
+        if (retries > 0) {
+            console.log('[RETRY] Tentando novamente em 10 segundos...');
+            setTimeout(() => startBot(retries - 1), 10000);
+        }
+    }
+}
+
+startBot();
