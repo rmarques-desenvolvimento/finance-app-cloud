@@ -219,7 +219,8 @@ client.on('qr', async (qr) => {
     currentQR = qr;
     botReady = false;
     console.log('[QR] Novo QR Code gerado. Acesse a URL do Render para escanear.');
-    await logCloud('WARN', 'QR Code gerado - escaneamento necessário');
+    // Salva o QR no Supabase para a página local buscar e exibir
+    await logCloud('WARN', 'QR Code gerado - escaneamento necessário', { qr });
 });
 
 client.on('authenticated', async () => {
