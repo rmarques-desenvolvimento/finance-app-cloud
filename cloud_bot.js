@@ -49,7 +49,18 @@ const client = new Client({
         dataPath: "./whatsapp_session_cloud"
     }),
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-extensions']
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu',
+            '--disable-extensions',
+            '--single-process' // Crucial para economizar RAM no Render
+        ]
     }
 });
 
