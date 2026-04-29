@@ -25,7 +25,7 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6Ik
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const CLOUD_TOKEN = 'RICARDO-FINANCE-CLOUD-2026';
 const BUCKET = 'whatsapp-sessions';
-const SESSION_ID = 'cloud-bot-ricardo-v4';
+const SESSION_ID = 'sessao-final-ricardo';
 
 // ====================================================
 // LOG REMOTO
@@ -199,18 +199,12 @@ const client = new Client({
         store: store,
         backupSyncIntervalMs: 5 * 60 * 1000
     }),
-    webVersion: '2.3000.1018921047', // Versão específica estável
-    webVersionCache: {
-        type: 'remote',
-        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1018921047.html',
-    },
     puppeteer: {
         headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu'
+            '--disable-dev-shm-usage'
         ],
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     }
