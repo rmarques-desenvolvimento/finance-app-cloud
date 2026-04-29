@@ -5,6 +5,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 let lastMsg = "Nenhuma mensagem recebida ainda";
+let currentQR = "";
 
 // Servidor Web Simples para o Render não "dormir"
 app.get('/', (req, res) => {
