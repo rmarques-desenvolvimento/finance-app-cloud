@@ -211,11 +211,15 @@ const client = new Client({
 });
 
 client.on('qr', async (qr) => {
-    currentQR = qr;
-    botReady = false;
-    console.log('[QR] Novo QR Code gerado. Acesse a URL do Render para escanear.');
-    // Salva o QR no Supabase para a página local buscar e exibir
-    await logCloud('WARN', 'QR Code gerado - escaneamento necessário', { qr });
+    logRemoto('QR Code gerado - Iniciando Pareamento por Número...');
+    
+    // MODO PAREAMENTO POR NÚMERO (Definitivo para Nuvem)
+    try {
+        const pairingCode = await client.requestPairingCode('5511957764815');
+        logRemoto('CÓDIGO DE PAREAMENTO GERADO: ' + pairingCode, { pairingCode });
+    } catch (err) {
+        logRemoto('Erro ao gerar Código de Pareamento', { erro: err.message });
+    }
 });
 
 client.on('authenticated', async () => {
